@@ -20,6 +20,7 @@
     </Compile>
   </ItemGroup>
 
+	
   <ItemGroup>
     <EmbeddedResource Update="FormEditPatient.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>

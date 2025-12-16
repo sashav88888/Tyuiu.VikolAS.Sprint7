@@ -27,6 +27,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Test
             Assert.IsTrue(ds2.Patients.Any(p => p.LastName == "Иванов"));
             Assert.IsTrue(ds2.Patients.Any(p => p.LastName == "Петров"));
 
+
             File.Delete(path);
         }
     }

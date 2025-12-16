@@ -128,6 +128,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             btnRefresh.Click += (s, e) => { RefreshControlsAfterLoad(); };
 
             leftFlow.Controls.Add(btnAdd);
+
             leftFlow.Controls.Add(btnEdit);
             leftFlow.Controls.Add(btnDelete);
             leftFlow.Controls.Add(btnRefresh);

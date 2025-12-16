@@ -12,6 +12,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
             Application.Run(new FormMain());
+
         }
     }
 }

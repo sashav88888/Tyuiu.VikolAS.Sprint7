@@ -7,6 +7,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
 {
     // ѕроста€ форма дл€ редактировани€/создани€ пациента
     public class FormEditPatientWindow_VikolAS : Form
+
     {
         public Patient Patient { get; private set; }
 
