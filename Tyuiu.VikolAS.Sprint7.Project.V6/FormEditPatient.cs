@@ -21,13 +21,14 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
         private NumericUpDown numSickDays = null!;
         private CheckBox chkDisp = null!;
         private TextBox textNote = null!;
+        private ToolTip toolTip = null!;
 
         public FormEditPatientWindow_VikolAS(Patient p)
         {
             Patient = p;
             Text = p.Id == 0 ? "Добавление пациента - Tyuiu_VikolAS" : $"Изменение пациента {p.Id} - Tyuiu_VikolAS";
-            Width = 480;
-            Height = 520;
+            Width = 560;
+            Height = 600;
             StartPosition = FormStartPosition.CenterParent;
 
             CreateUi();
@@ -36,58 +37,125 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
 
         private void CreateUi()
         {
-            var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
+            // Общие настройки внешнего вида
+            this.Font = new Font("Segoe UI", 10F);
+            this.BackColor = Color.WhiteSmoke;
+
+            toolTip = new ToolTip();
+            toolTip.IsBalloon = true;
+
+            var panel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(12) };
             Controls.Add(panel);
 
-            var flow = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 2, RowCount = 11, AutoSize = true };
+            var flow = new TableLayoutPanel { Dock = DockStyle.Top, ColumnCount = 2, AutoSize = true };
             flow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 35));
             flow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 65));
+            flow.Padding = new Padding(6);
+            flow.CellBorderStyle = TableLayoutPanelCellBorderStyle.None;
             panel.Controls.Add(flow);
 
             int r = 0;
             flow.RowStyles.Clear();
-            for (int i = 0; i < 11; i++) flow.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
-            flow.Controls.Add(new Label { Text = "Фамилия:", AutoSize = true }, 0, r);
-            textLastName = new TextBox { Width = 280 }; flow.Controls.Add(textLastName, 1, r++);
+            void AddRow(Control lbl, Control ctrl)
+            {
+                flow.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                flow.Controls.Add(lbl, 0, r);
+                flow.Controls.Add(ctrl, 1, r);
+                r++;
+            }
 
-            flow.Controls.Add(new Label { Text = "Имя:", AutoSize = true }, 0, r);
-            textFirstName = new TextBox { Width = 280 }; flow.Controls.Add(textFirstName, 1, r++);
+            // Фамилия
+            var lblLast = new Label { Text = "Фамилия:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold), TextAlign = ContentAlignment.MiddleLeft };
+            textLastName = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblLast, textLastName);
+            toolTip.SetToolTip(textLastName, "Введите фамилию пациента");
 
-            flow.Controls.Add(new Label { Text = "Отчество:", AutoSize = true }, 0, r);
-            textMiddleName = new TextBox { Width = 280 }; flow.Controls.Add(textMiddleName, 1, r++);
+            // Имя
+            var lblFirst = new Label { Text = "Имя:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textFirstName = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblFirst, textFirstName);
+            toolTip.SetToolTip(textFirstName, "Введите имя пациента");
 
-            flow.Controls.Add(new Label { Text = "Дата рождения:", AutoSize = true }, 0, r);
-            dateBirth = new DateTimePicker { Format = DateTimePickerFormat.Short }; flow.Controls.Add(dateBirth, 1, r++);
+            // Отчество
+            var lblMiddle = new Label { Text = "Отчество:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textMiddleName = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblMiddle, textMiddleName);
+            toolTip.SetToolTip(textMiddleName, "Введите отчество (если есть)");
 
-            flow.Controls.Add(new Label { Text = "Врач (ФИО):", AutoSize = true }, 0, r);
-            textDoctor = new TextBox { Width = 280 }; flow.Controls.Add(textDoctor, 1, r++);
+            // Дата рождения
+            var lblBirth = new Label { Text = "Дата рождения:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            dateBirth = new DateTimePicker { Format = DateTimePickerFormat.Short, Width = 200, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblBirth, dateBirth);
+            toolTip.SetToolTip(dateBirth, "Выберите дату рождения пациента");
 
-            flow.Controls.Add(new Label { Text = "Должность/спец.:", AutoSize = true }, 0, r);
-            textPosition = new TextBox { Width = 280 }; flow.Controls.Add(textPosition, 1, r++);
+            // Врач
+            var lblDoctor = new Label { Text = "Врач (ФИО):", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textDoctor = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblDoctor, textDoctor);
+            toolTip.SetToolTip(textDoctor, "ФИО лечащего врача");
 
-            flow.Controls.Add(new Label { Text = "Диагноз:", AutoSize = true }, 0, r);
-            textDiagnosis = new TextBox { Width = 280 }; flow.Controls.Add(textDiagnosis, 1, r++);
+            // Должность
+            var lblPosition = new Label { Text = "Должность/спец.:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textPosition = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblPosition, textPosition);
+            toolTip.SetToolTip(textPosition, "Должность или специализация врача");
 
-            flow.Controls.Add(new Label { Text = "Амбулаторно:", AutoSize = true }, 0, r);
-            chkAmbulatory = new CheckBox(); flow.Controls.Add(chkAmbulatory, 1, r++);
+            // Диагноз
+            var lblDiagnosis = new Label { Text = "Диагноз:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textDiagnosis = new TextBox { Width = 380, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblDiagnosis, textDiagnosis);
+            toolTip.SetToolTip(textDiagnosis, "Краткий диагноз пациента");
 
-            flow.Controls.Add(new Label { Text = "Срок нетрудоспособности (дн):", AutoSize = true }, 0, r);
-            numSickDays = new NumericUpDown { Minimum = 0, Maximum = 3650, Width = 80 }; flow.Controls.Add(numSickDays, 1, r++);
+            // Амбулаторно
+            var lblAmb = new Label { Text = "Амбулаторно:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            chkAmbulatory = new CheckBox { Margin = new Padding(6) };
+            AddRow(lblAmb, chkAmbulatory);
+            toolTip.SetToolTip(chkAmbulatory, "Отметьте, если лечение амбулаторное");
 
-            flow.Controls.Add(new Label { Text = "На диспансерном учете:", AutoSize = true }, 0, r);
-            chkDisp = new CheckBox(); flow.Controls.Add(chkDisp, 1, r++);
+            // Срок нетрудоспособности
+            var lblDays = new Label { Text = "Срок нетрудоспособности (дн):", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            numSickDays = new NumericUpDown { Minimum = 0, Maximum = 3650, Width = 100, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6) };
+            AddRow(lblDays, numSickDays);
+            toolTip.SetToolTip(numSickDays, "Укажите срок в днях");
 
-            flow.Controls.Add(new Label { Text = "Примечание:", AutoSize = true }, 0, r);
-            textNote = new TextBox { Width = 280, Height = 80, Multiline = true }; flow.Controls.Add(textNote, 1, r++);
+            // Диспансерный учёт
+            var lblDisp = new Label { Text = "На диспансерном учете:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            chkDisp = new CheckBox { Margin = new Padding(6) };
+            AddRow(lblDisp, chkDisp);
+            toolTip.SetToolTip(chkDisp, "Отметьте, если пациент на диспансерном учёте");
 
-            var panelButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(8), Height = 48 };
-            var btnOk = new Button { Text = "ОК", DialogResult = DialogResult.OK, Width = 100 };
-            var btnCancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, Width = 100 };
+            // Примечание
+            var lblNote = new Label { Text = "Примечание:", AutoSize = true, Font = new Font(this.Font, FontStyle.Bold) };
+            textNote = new TextBox { Width = 380, Height = 120, Multiline = true, Font = new Font(this.Font.FontFamily, 11F), Margin = new Padding(6), ScrollBars = ScrollBars.Vertical };
+            AddRow(lblNote, textNote);
+            toolTip.SetToolTip(textNote, "Дополнительная информация о пациенте");
+
+            // Кнопки внизу
+            var panelButtons = new FlowLayoutPanel { Dock = DockStyle.Bottom, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(12), Height = 64, BackColor = Color.Transparent };
+            var btnOk = new Button { Text = "ОК", DialogResult = DialogResult.OK, Width = 140, Height = 40 };
+            var btnCancel = new Button { Text = "Отмена", DialogResult = DialogResult.Cancel, Width = 140, Height = 40 };
+
+            // Стиль кнопок
+            btnOk.Font = new Font(this.Font.FontFamily, 11F, FontStyle.Bold);
+            btnOk.BackColor = Color.FromArgb(46, 139, 87);
+            btnOk.ForeColor = Color.White;
+            btnOk.FlatStyle = FlatStyle.Flat;
+            btnOk.FlatAppearance.BorderSize = 0;
+
+            btnCancel.Font = new Font(this.Font.FontFamily, 11F, FontStyle.Regular);
+            btnCancel.BackColor = Color.LightGray;
+            btnCancel.FlatStyle = FlatStyle.Flat;
+            btnCancel.FlatAppearance.BorderSize = 0;
+
             btnOk.Click += BtnOk_Click;
             panelButtons.Controls.Add(btnOk);
             panelButtons.Controls.Add(btnCancel);
             Controls.Add(panelButtons);
+
+            // Удобства
+            this.AcceptButton = btnOk;
+            this.CancelButton = btnCancel;
         }
 
         private void FormEditPatient_Load(object? sender, EventArgs e)
@@ -111,7 +179,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             // Простая валидация
             if (string.IsNullOrWhiteSpace(textLastName.Text) || string.IsNullOrWhiteSpace(textFirstName.Text))
             {
-                MessageBox.Show("Заполните имя и фамилию");
+                MessageBox.Show("Заполните имя и фамилию", "Внимание", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 DialogResult = DialogResult.None;
                 return;
             }

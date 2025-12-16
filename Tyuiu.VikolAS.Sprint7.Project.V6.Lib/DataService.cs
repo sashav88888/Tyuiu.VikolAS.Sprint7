@@ -7,30 +7,62 @@ using System.Text;
 
 namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
 {
-    // Простенький модель пациента и сервис для работы с CSV
+    // Простая модель пациента и сервис для работы с CSV.
+    // Этот файл содержит две основные сущности:
+    // 1) `Patient` - модель данных пациента с набором свойств,
+    //    методами сериализации в CSV и десериализации из CSV.
+    // 2) `DataService` - сервис для работы с коллекцией пациентов,
+    //    загрузки/сохранения в CSV и простых операций (CRUD, фильтрация, статистика).
+
     public class Patient
     {
+        // Уникальный идентификатор пациента
         public int Id { get; set; }
+
+        // Фамилия пациента
         public string LastName { get; set; } = string.Empty; // Фамилия
+
+        // Имя пациента
         public string FirstName { get; set; } = string.Empty; // Имя
+
+        // Отчество пациента
         public string MiddleName { get; set; } = string.Empty; // Отчество
+
+        // Дата рождения
         public DateTime BirthDate { get; set; } // Дата рождения
+
+        // ФИО лечащего врача
         public string DoctorFullName { get; set; } = string.Empty; // Врач ФИО
+
+        // Должность / специализация врача
         public string DoctorPosition { get; set; } = string.Empty; // Должность / специализация
+
+        // Диагноз, поставленный пациенту
         public string Diagnosis { get; set; } = string.Empty; // Диагноз
+
+        // Признак амбулаторного лечения
         public bool Ambulatory { get; set; } // Амбулаторно
+
+        // Срок потери трудоспособности в днях
         public int SickLeaveDays { get; set; } // Срок потери трудоспособности
+
+        // На диспансерном учёте
         public bool OnDispensary { get; set; } // Диспансерный учёт
+
+        // Дополнительное примечание
         public string Note { get; set; } = string.Empty; // Примечание
 
-        // Возраст в полных годах
+        // Вычисляемое свойство: возраст в полных годах.
+        // Используется простая формула на основе количества дней.
         public int Age => (int)((DateTime.Today - BirthDate).TotalDays / 365.2425);
 
+        // Сериализация пациента в CSV-строку.
+        // Поля экранируются кавычками, внутри кавычек двойные кавычки дублируются.
         public string ToCsv()
         {
-            // Простая CSV-строка, экранируем кавычки
+            // Вспомогательная функция для экранирования строковых полей
             string esc(string s) => '"' + s.Replace("\"", "\"\"") + '"';
-            // Собираем поля в строковый массив, затем объединяем через запятую
+            // Собираем поля в массив строк и объединяем через запятую
             var fields = new string[]
             {
                 Id.ToString(),
@@ -49,10 +81,13 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             return string.Join(",", fields);
         }
 
+        // Десериализация пациента из CSV-строки.
+        // Реализован простой парсер: поддерживает кавычки и двойные кавычки внутри полей.
+        // Для учебного проекта этого достаточно, но в реальном приложении лучше использовать
+        // полноценную CSV-библиотеку (например, CsvHelper).
         public static Patient FromCsv(string line)
         {
-            // Очень простой CSV-парсер, ожидаем, что поля в кавычках или без
-            // Для учебного проекта этого достаточно
+            // Разбиваем строку на поля, учитывая кавычки
             var parts = new List<string>();
             bool inQuotes = false;
             var cur = new StringBuilder();
@@ -63,17 +98,19 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
                 {
                     if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
                     {
-                        // двойная кавычка внутри строки
+                        // Внутри кавычек встретилась пара кавычек - это символ ", добавляем его и пропускаем следующий символ
                         cur.Append('"');
-                        i++; // пропускаем
+                        i++; // пропускаем второй
                     }
                     else
                     {
+                        // Переключаем режим внутри/вне кавычек
                         inQuotes = !inQuotes;
                     }
                 }
                 else if (ch == ',' && !inQuotes)
                 {
+                    // Разделитель поля (запятая) вне кавычек
                     parts.Add(cur.ToString());
                     cur.Clear();
                 }
@@ -84,7 +121,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             }
             parts.Add(cur.ToString());
 
-            // Теперь создаём объект
+            // Создаём объект Patient и пытаемся заполнить поля
             var p = new Patient();
             try
             {
@@ -104,10 +141,12 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             }
             catch
             {
-                // Если что-то пошло не так — вернём пустого пациента, вызывающий код должен учитывать
+                // Если при разборе произошла ошибка — возвращаем частично заполненный объект.
+                // В вызывающем коде следует учитывать возможность некорректных данных.
             }
             return p;
 
+            // Вспомогательная функция для удаления внешних кавычек и восстановления двойных кавычек
             static string TrimQuotes(string s)
             {
                 if (string.IsNullOrEmpty(s)) return string.Empty;
@@ -118,23 +157,28 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
         }
     }
 
+    // Сервис для управления коллекцией пациентов и сохранения/загрузки в CSV.
+    // Этот сервис выполняет функцию «back-end» логики приложения: CRUD операции,
+    // фильтрация, сортировка, статистика и формирование данных для визуализации.
     public class DataService
     {
-        // Сервис для работы с коллекцией пациентов и CSV
+        // Коллекция пациентов в памяти. В реальном приложении можно заменить на БД.
         public List<Patient> Patients { get; } = new List<Patient>();
 
-        // Загрузить из CSV
+        // Загрузить список пациентов из CSV-файла по указанному пути.
+        // Если файл отсутствует — просто очистить текущую коллекцию.
         public void LoadFromCsv(string path)
         {
             Patients.Clear();
-            if (!File.Exists(path))
+            if (!File.Exists(path)
+                )
                 return;
 
             var lines = File.ReadAllLines(path);
             if (lines.Length == 0)
                 return;
 
-            // если есть заголовок — пропускаем его
+            // Если в файле есть заголовок — пропускаем первую строку
             int start = 0;
             if (lines[0].StartsWith("Id", StringComparison.OrdinalIgnoreCase))
                 start = 1;
@@ -149,11 +193,11 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             }
         }
 
-        // Сохранить в CSV
+        // Сохранить текущую коллекцию пациентов в CSV-файл.
         public void SaveToCsv(string path)
         {
             var sb = new StringBuilder();
-            // заголовок
+            // Добавляем строку заголовка для удобства чтения/редактирования
             sb.AppendLine("Id,LastName,FirstName,MiddleName,BirthDate,DoctorFullName,DoctorPosition,Diagnosis,Ambulatory,SickLeaveDays,OnDispensary,Note");
             foreach (var p in Patients)
             {
@@ -162,16 +206,16 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             File.WriteAllText(path, sb.ToString());
         }
 
-        // Добавить пациента
+        // Добавить нового пациента в коллекцию.
+        // Если Id не задан (0) — генерируем новый Id на основе максимального существующего.
         public void AddPatient(Patient p)
         {
-            // простая логика для id
             if (p.Id == 0)
                 p.Id = Patients.Count == 0 ? 1 : Patients.Max(x => x.Id) + 1;
             Patients.Add(p);
         }
 
-        // Обновить пациента по id
+        // Обновить существующего пациента по Id — копируем поля из переданного объекта.
         public void UpdatePatient(Patient p)
         {
             var existing = Patients.FirstOrDefault(x => x.Id == p.Id);
@@ -189,7 +233,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             existing.Note = p.Note;
         }
 
-        // Удалить
+        // Удалить пациента по Id.
         public void DeletePatient(int id)
         {
             var existing = Patients.FirstOrDefault(x => x.Id == id);
@@ -197,7 +241,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
                 Patients.Remove(existing);
         }
 
-        // Поиск по фамилии (contains)
+        // Поиск по фамилии (contains, регистронезависимо)
         public List<Patient> SearchByLastName(string text)
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -205,7 +249,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             return Patients.Where(x => x.LastName.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
         }
 
-        // Сортировка по фамилии или возрасту
+        // Сортировка по ключу (например: "Фамилия", "Возраст")
         public List<Patient> SortBy(string key, bool ascending = true)
         {
             IEnumerable<Patient> q = Patients;
@@ -218,7 +262,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             return q.ToList();
         }
 
-        // Фильтрация по диагнозу
+        // Фильтрация по точному совпадению диагноза (регистронезависимо)
         public List<Patient> FilterByDiagnosis(string diagnosis)
         {
             if (string.IsNullOrWhiteSpace(diagnosis))
@@ -226,7 +270,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             return Patients.Where(x => string.Equals(x.Diagnosis, diagnosis, StringComparison.OrdinalIgnoreCase)).ToList();
         }
 
-        // Статистика: count, average age, min/max age
+        // Простейшая статистика: количество, средний возраст, мин/макс возраста
         public (int Count, double AverageAge, int MinAge, int MaxAge) GetStatistics()
         {
             if (!Patients.Any())
@@ -235,7 +279,7 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6.Lib
             return (ages.Count, ages.Average(), ages.Min(), ages.Max());
         }
 
-        // Гистограмма по диагнозам
+        // Гистограмма по диагнозам: ключ — диагноз, значение — количество пациентов
         public Dictionary<string, int> GetHistogramByDiagnosis()
         {
             return Patients.GroupBy(x => string.IsNullOrWhiteSpace(x.Diagnosis) ? "(нет)" : x.Diagnosis)
