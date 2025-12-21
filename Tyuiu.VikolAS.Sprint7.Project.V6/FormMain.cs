@@ -10,30 +10,34 @@ using Tyuiu.VikolAS.Sprint7.Project.V6.Lib;
 
 namespace Tyuiu.VikolAS.Sprint7.Project.V6
 {
+   
     public partial class FormMain : Form
     {
+        // Сервис данных - простой класс, хранящий список пациентов и умеющий читать/писать CSV.
         private readonly DataService _dataService = new DataService();
+        // Путь до файла CSV для хранения пациентов (в папке с исполняемым файлом)
         private readonly string _dataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "patients.csv");
 
-        // Controls
-        private DataGridView dataGridViewPatients = null!;
-        private TextBox textBoxSearch = null!;
-        private ComboBox comboBoxFilterDiagnosis = null!;
-        private ComboBox comboBoxSort = null!;
-        private ListView listViewSummary = null!;
-        private Panel chartSummary = null!;
-        private StatusStrip statusStrip = null!;
-        private ToolStripStatusLabel statusLabel = null!;
+        // Основные контролы формы (описательные имена помогают быстрее понять код)
+        private DataGridView dataGridViewPatients = null!; // таблица для отображения пациентов
+        private TextBox textBoxSearch = null!; // поле поиска по фамилии
+        private ComboBox comboBoxFilterDiagnosis = null!; // комбобокс для фильтра по диагнозу
+        private ComboBox comboBoxSort = null!; // комбобокс выбора способа сортировки
+        private ListView listViewSummary = null!; // список со сводкой по диагнозам
+        private Panel chartSummary = null!; // панель для отрисовки гистограммы
+        private StatusStrip statusStrip = null!; // строка состояния
+        private ToolStripStatusLabel statusLabel = null!; // метка в строке состояния
 
-        // Left control buttons
+        // Кнопки слева
         private Button btnAdd = null!;
         private Button btnEdit = null!;
         private Button btnDelete = null!;
         private Button btnRefresh = null!;
 
-        // Histogram cache
+        // Кеш последней гистограммы (диагноз -> количество). Используется для рисования графика.
         private Dictionary<string, int> _lastHistogram = new Dictionary<string, int>();
 
+        // Конструктор формы — настраиваем внешний вид и подписываемся на события.
         public FormMain()
         {
             Text = "Поликлиника - Викол А.С. ИСПб-25-1";
@@ -42,17 +46,24 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Segoe UI", 10F);
 
-            InitializeComponentCustom();
+            InitializeComponentCustom(); // создаём контролы вручную 
 
-            Load += FormMain_Load;
-            Resize += (s, e) => { dataGridViewPatients.AutoResizeColumns(); chartSummary.Invalidate(); };
+            Load += FormMain_Load; // при загрузке формы подгрузим данные
+            Resize += (s, e) =>
+            {
+                dataGridViewPatients.AutoResizeColumns();
+                chartSummary.Invalidate(); // перерисовываем гистограмму при изменении размера окна
+            };
         }
 
+        // InitializeComponentCustom
+       
+        
         private void InitializeComponentCustom()
         {
             Controls.Clear();
 
-            // Top toolbar with two dropdowns
+            // Верхнее меню с пунктами "Файл" и "Справка"
             var topTool = new ToolStrip { Dock = DockStyle.Top, GripStyle = ToolStripGripStyle.Hidden, BackColor = SystemColors.Control };
             var fileDrop = new ToolStripDropDownButton("Файл") { ShowDropDownArrow = true };
             fileDrop.DropDownItems.Add(new ToolStripMenuItem("Открыть", null, (s, e) => LoadData()));
@@ -64,40 +75,24 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             helpDrop.DropDownItems.Add(new ToolStripMenuItem("О программе", null, (s, e) =>
             {
                 var about = new StringBuilder();
-                about.AppendLine("Поликлиника — учебный проект");
+                about.AppendLine("Поликлиника — учебный проект по программированию");
                 about.AppendLine();
                 about.AppendLine("Назначение: учебное приложение для учёта пациентов — добавление, редактирование, удаление, фильтрация и анализ записей.");
                 about.AppendLine();
-                about.AppendLine("Основные данные:");
-                about.AppendLine("  • Id (номер записи)");
-                about.AppendLine("  • Фамилия, имя, отчество, дата рождения пациента");
-                about.AppendLine("  • ФИО, должность и специализация лечащего врача");
-                about.AppendLine("  • Диагноз, амбулаторное лечение, срок нетрудоспособности (дни), диспансерный учёт, примечание");
-                about.AppendLine();
                 about.AppendLine("Функциональность:");
-                about.AppendLine("  • Добавление/редактирование/удаление записей (диалог редактирования)");
-                about.AppendLine("  • Хранение данных в CSV (patients.csv) через DataService");
-                about.AppendLine("  • Поиск по фамилии, сортировка, фильтр по диагнозу");
-                about.AppendLine("  • Быстрая статистика в строке состояния и гистограмма распределения по диагнозам");
+                about.AppendLine("  • Добавление/редактирование/удаление записей");
+                about.AppendLine("  • Хранение данных в CSV (patients.csv)");
+                about.AppendLine("  • Поиск по фамилии, фильтр по диагнозу, сортировка");
                 about.AppendLine();
                 about.AppendLine("Технологии: C#, .NET 8, WinForms.");
-                about.AppendLine();
-                about.AppendLine("Автор: Викол Александр (ИСПб-25-1). Проект учебный — можно модифицировать и использовать для практики.");
                 MessageBox.Show(about.ToString(), "О программе", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }));
-
             helpDrop.DropDownItems.Add(new ToolStripMenuItem("Краткое руководство", null, (s, e) =>
             {
                 var guide = new StringBuilder();
-                guide.AppendLine("Краткое руководство по работе с приложением:");
-                guide.AppendLine();
-                guide.AppendLine("1. Добавить пациента: нажмите 'Добавить пациента' и заполните форму, затем сохраните.");
-                guide.AppendLine("2. Изменить пациента: выберите строку в таблице и нажмите 'Изменить пациента'.");
-                guide.AppendLine("3. Удалить пациента: выберите строку и нажмите 'Удалить пациента'.");
-                guide.AppendLine("4. Поиск: введите фамилию в поле 'Поиск (фамилия)' слева.");
-                guide.AppendLine("5. Сортировка/Фильтр: используйте выпадающие списки слева для сортировки и фильтрации по диагнозу.");
-                guide.AppendLine("6. Сохранение/Загрузка: используйте меню 'Файл' для работы с CSV (patients.csv).");
-                guide.AppendLine("7. Статистика: правый блок показывает сводку по диагнозам и гистограмму.");
+                guide.AppendLine("1. Добавить пациента: нажмите 'Добавить пациента' и заполните форму.");
+                guide.AppendLine("2. Изменить: выделите строку и нажмите 'Изменить пациента'.");
+                guide.AppendLine("3. Удалить: выделите строку и нажмите 'Удалить пациента'.");
                 MessageBox.Show(guide.ToString(), "Краткое руководство", MessageBoxButtons.OK, MessageBoxIcon.Information);
             }));
 
@@ -105,14 +100,14 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             topTool.Items.Add(helpDrop);
             Controls.Add(topTool);
 
-            // Main layout
+            // Основная сетка: левая панель для управления, центральная для таблицы, правая для сводки
             var mainLayout = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, Padding = new Padding(8, 18, 8, 8) };
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 260));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             mainLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 320));
             Controls.Add(mainLayout);
 
-            // Left panel
+            // Левая панель с кнопками и фильтрами
             var leftPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
             mainLayout.Controls.Add(leftPanel, 0, 0);
             var leftFlow = new FlowLayoutPanel { Dock = DockStyle.Top, FlowDirection = FlowDirection.TopDown, AutoSize = true, WrapContents = false };
@@ -122,35 +117,55 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             btnEdit = new Button { Text = "Изменить пациента", Width = 220, Height = 36, Margin = new Padding(2) };
             btnDelete = new Button { Text = "Удалить пациента", Width = 220, Height = 36, Margin = new Padding(2) };
             btnRefresh = new Button { Text = "Обновить", Width = 220, Height = 36, Margin = new Padding(2) };
+
+            // Привязка событий: действия простые и понятные
             btnAdd.Click += (s, e) => { ShowEditDialog(null); RefreshControlsAfterLoad(); };
             btnEdit.Click += (s, e) => { if (dataGridViewPatients.SelectedRows.Count > 0) ShowEditDialog(GetSelectedPatient()); };
-            btnDelete.Click += (s, e) => { if (dataGridViewPatients.SelectedRows.Count > 0) { try { _dataService.DeletePatient(GetSelectedPatient().Id); RefreshControlsAfterLoad(); } catch { } } };
+            btnDelete.Click += (s, e) =>
+            {
+                if (dataGridViewPatients.SelectedRows.Count > 0)
+                {
+                    try
+                    {
+                        _dataService.DeletePatient(GetSelectedPatient().Id);
+                        RefreshControlsAfterLoad();
+                    }
+                    catch
+                    {
+                        // В учебном примере пропускаем ошибки, но можно показать сообщение пользователю
+                    }
+                }
+            };
             btnRefresh.Click += (s, e) => { RefreshControlsAfterLoad(); };
 
             leftFlow.Controls.Add(btnAdd);
-
             leftFlow.Controls.Add(btnEdit);
             leftFlow.Controls.Add(btnDelete);
             leftFlow.Controls.Add(btnRefresh);
             leftFlow.Controls.Add(new Label { Text = "", Height = 6 });
 
+            // Поиск
             leftFlow.Controls.Add(new Label { Text = "Поиск (фамилия):", AutoSize = false, Width = 240 });
             textBoxSearch = new TextBox { Width = 240 };
             textBoxSearch.TextChanged += (s, e) => RefreshGrid();
             leftFlow.Controls.Add(textBoxSearch);
 
+            // Сортировка: отдельная строка для ясности
             leftFlow.Controls.Add(new Label { Text = "Сортировка:", AutoSize = false, Width = 240 });
             comboBoxSort = new ComboBox { Width = 240, DropDownStyle = ComboBoxStyle.DropDownList };
-            comboBoxSort.Items.AddRange(new string[] { "Общее", "ID", "Фамилия", "Возраст" }); comboBoxSort.SelectedIndex = 0;
+            comboBoxSort.Items.AddRange(new string[] { "Общее", "Id", "Фамилия", "Возраст" });
+            comboBoxSort.SelectedIndex = 0;
             comboBoxSort.SelectedIndexChanged += (s, e) => RefreshGrid();
             leftFlow.Controls.Add(comboBoxSort);
 
+            // Фильтр по диагнозу
             leftFlow.Controls.Add(new Label { Text = "Фильтр по диагнозу:", AutoSize = false, Width = 240 });
             comboBoxFilterDiagnosis = new ComboBox { Width = 240, DropDownStyle = ComboBoxStyle.DropDown };
-            comboBoxFilterDiagnosis.TextChanged += (s, e) => RefreshGrid(); comboBoxFilterDiagnosis.SelectedIndexChanged += (s, e) => RefreshGrid();
+            comboBoxFilterDiagnosis.TextChanged += (s, e) => RefreshGrid();
+            comboBoxFilterDiagnosis.SelectedIndexChanged += (s, e) => RefreshGrid();
             leftFlow.Controls.Add(comboBoxFilterDiagnosis);
 
-            // Middle: grid
+            // Центральная таблица пациентов 
             dataGridViewPatients = new DataGridView { Dock = DockStyle.Fill, ReadOnly = true, SelectionMode = DataGridViewSelectionMode.FullRowSelect, AutoGenerateColumns = false, AllowUserToAddRows = false };
             dataGridViewPatients.RowTemplate.Height = 36;
             dataGridViewPatients.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -165,11 +180,11 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             dataGridViewPatients.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Отчество", DataPropertyName = "MiddleName", Name = "colMiddleName" });
             dataGridViewPatients.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Дата р.", DataPropertyName = "BirthDate", Name = "colBirthDate" });
             dataGridViewPatients.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Врач", DataPropertyName = "DoctorFullName", Name = "colDoctor" });
-            dataGridViewPatients.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", DataPropertyName = "ID", Width = 60, Name = "colId" });
+            dataGridViewPatients.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "ID", DataPropertyName = "Id", Width = 60, Name = "colId" });
 
             mainLayout.Controls.Add(dataGridViewPatients, 1, 0);
 
-            // Right: summary + chart
+            // Правая панель: сводка по диагнозам и гистограмма
             var rightPanel = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
             mainLayout.Controls.Add(rightPanel, 2, 0);
 
@@ -201,15 +216,30 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             chartSummary.Paint += PanelSummary_Paint;
             rightLayout.Controls.Add(chartSummary, 0, 1);
 
-            // Status strip
-            statusStrip = new StatusStrip(); statusLabel = new ToolStripStatusLabel("Готов"); statusStrip.Items.Add(statusLabel); Controls.Add(statusStrip);
+            statusStrip = new StatusStrip();
+            statusLabel = new ToolStripStatusLabel("Готов");
+            statusStrip.Items.Add(statusLabel);
+            Controls.Add(statusStrip);
         }
 
+        // FormMain_Load: вызывается при старте формы. Пытаемся загрузить данные из CSV.
+     
         private void FormMain_Load(object? sender, EventArgs e)
         {
-            try { LoadData(); } catch { }
+            try
+            {
+                LoadData();
+            }
+            catch
+            {
+                
+            }
         }
 
+        /*
+         * LoadData
+         * Загружает данные из CSV через DataService и обновляет пользовательский интерфейс.
+         */
         private void LoadData()
         {
             try
@@ -217,41 +247,86 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
                 _dataService.LoadFromCsv(_dataPath);
                 RefreshControlsAfterLoad();
             }
-            catch (Exception ex) { MessageBox.Show("Ошибка загрузки: " + ex.Message); }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка загрузки: " + ex.Message);
+            }
         }
 
+        /*
+         * SaveData
+         * Сохраняет текущий список пациентов в CSV-файл. Вызывается из меню "Файл".
+         */
         private void SaveData()
         {
-            try { _dataService.SaveToCsv(_dataPath); statusLabel.Text = "Данные сохранены"; } catch (Exception ex) { MessageBox.Show("Ошибка сохранения: " + ex.Message); }
+            try
+            {
+                _data_service_safe_enumerable();
+                _dataService.SaveToCsv(_dataPath);
+                statusLabel.Text = "Данные сохранены";
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Ошибка сохранения: " + ex.Message);
+            }
         }
 
+        /*
+         * RefreshControlsAfterLoad
+         * Вызывается после загрузки или изменения данных.
+         * - Заполняет список диагнозов для фильтрации
+         * - Обновляет таблицу
+         */
         private void RefreshControlsAfterLoad()
         {
-            var diagnoses = _data_service_safe_enumerable().Select(x => x.Diagnosis).Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToArray();
-            comboBoxFilterDiagnosis.Items.Clear(); comboBoxFilterDiagnosis.Items.Add("(Все)"); comboBoxFilterDiagnosis.Items.AddRange(diagnoses); comboBoxFilterDiagnosis.SelectedIndex = 0;
+            var diagnoses = _data_service_safe_enumerable()
+                .Select(x => x.Diagnosis)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            comboBoxFilterDiagnosis.Items.Clear();
+            comboBoxFilterDiagnosis.Items.Add("(Все)");
+            comboBoxFilterDiagnosis.Items.AddRange(diagnoses);
+            comboBoxFilterDiagnosis.SelectedIndex = 0;
+
             RefreshGrid();
         }
 
+        /*
+         * RefreshGrid
+         * Формирует текущую выборку пациентов с учётом поиска, фильтра и сортировки
+         * и привязывает результат к DataGridView.
+         */
         private void RefreshGrid()
         {
             var list = _data_service_safe_enumerable();
-            if (!string.IsNullOrWhiteSpace(textBoxSearch.Text)) list = list.Where(x => x.LastName.IndexOf(textBoxSearch.Text, StringComparison.OrdinalIgnoreCase) >= 0);
-            var sel = comboBoxFilterDiagnosis.SelectedItem as string ?? comboBoxFilterDiagnosis.Text;
-            if (!string.IsNullOrWhiteSpace(sel) && sel != "(Все)") list = list.Where(x => string.Equals(x.Diagnosis, sel, StringComparison.OrdinalIgnoreCase));
-            var key = comboBoxSort.SelectedItem?.ToString() ?? "Общее";
-            list = key switch { "Фамилия" => list.OrderBy(x => x.LastName), "Возраст" => list.OrderBy(x => x.Age), "Id" => list.OrderBy(x => x.Id), _ => list };
 
-            var rows = list.Select(x => new
+            // Поиск по фамилии (введите часть фамилии)
+            if (!string.IsNullOrWhiteSpace(textBoxSearch.Text))
             {
-                x.Id,
-                FirstName = x.FirstName,
-                LastName = x.LastName,
-                MiddleName = x.MiddleName,
-                BirthDate = x.BirthDate.ToShortDateString(),
-                DoctorFullName = x.DoctorFullName,
-                Diagnosis = x.Diagnosis
-            }).ToList();
+                list = list.Where(x => x.LastName.IndexOf(textBoxSearch.Text, StringComparison.OrdinalIgnoreCase) >= 0);
+            }
 
+            // Фильтр по диагнозу
+            var sel = comboBoxFilterDiagnosis.SelectedItem as string ?? comboBoxFilterDiagnosis.Text;
+            if (!string.IsNullOrWhiteSpace(sel) && sel != "(Все)")
+            {
+                list = list.Where(x => string.Equals(x.Diagnosis, sel, StringComparison.OrdinalIgnoreCase));
+            }
+
+            // Сортировка: по фамилии, возрасту или Id
+            var key = comboBoxSort.SelectedItem?.ToString() ?? "Общее";
+            list = key switch
+            {
+                "Фамилия" => list.OrderBy(x => x.LastName),
+                "Возраст" => list.OrderBy(x => x.Age),
+                "Id" => list.OrderBy(x => x.Id),
+                _ => list
+            };
+
+            // Привязываем результат к таблице
+            var rows = list.ToList();
             dataGridViewPatients.DataSource = null;
             dataGridViewPatients.DataSource = rows;
             dataGridViewPatients.ClearSelection();
@@ -260,29 +335,48 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             UpdateStatus();
         }
 
+        /*
+         * UpdateStatus
+         * Обновляет строку состояния: количество пациентов и простая статистика по возрасту.
+         */
         private void UpdateStatus()
         {
             try
             {
                 var stats = _data_service_safe_stats();
-                statusLabel.Text = $"Пациентов: {stats.Count} | Средний возраст: {Math.Round(stats.AverageAge,1)} | Мин возраст / Макс возраст: {stats.MinAge}/{stats.MaxAge}";
+                statusLabel.Text = $"Пациентов: {stats.Count} | Средний возраст: {Math.Round(stats.AverageAge, 1)} | Мин возраст / Макс возраст: {stats.MinAge}/{stats.MaxAge}";
             }
-            catch { statusLabel.Text = "Пациентов: 0"; }
+            catch
+            {
+                statusLabel.Text = "Пациентов: 0";
+            }
         }
 
+        /*
+         * UpdateSummary
+         * Заполняет правый список диагнозов и обновляет кеш гистограммы для рисования.
+         */
         private void UpdateSummary()
         {
             _lastHistogram = _dataService.GetHistogramByDiagnosis();
-            listViewSummary.BeginUpdate(); listViewSummary.Items.Clear();
+
+            listViewSummary.BeginUpdate();
+            listViewSummary.Items.Clear();
             foreach (var kv in _lastHistogram.OrderByDescending(k => k.Value))
             {
                 var item = new ListViewItem(new string[] { kv.Key, kv.Value.ToString() });
                 listViewSummary.Items.Add(item);
             }
             listViewSummary.EndUpdate();
+
             chartSummary.Invalidate();
         }
 
+        /*
+         * PanelSummary_Paint
+         * Простейшая отрисовка столбиковой гистограммы на панели. Для учебного проекта
+         * достаточно простой логики: вычисляем высоту по отношению к максимуму и рисуем прямоугольники.
+         */
         private void PanelSummary_Paint(object? sender, PaintEventArgs e)
         {
             var g = e.Graphics;
@@ -295,8 +389,8 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
             }
 
             int margin = 12;
-            int reservedTop = margin + 8; // space for value labels
-            int reservedBottom = margin + 28; // space for category labels
+            int reservedTop = margin + 8;
+            int reservedBottom = margin + 28;
             int w = Math.Max(0, chartSummary.ClientSize.Width - margin * 2);
             int h = Math.Max(0, chartSummary.ClientSize.Height - reservedTop - reservedBottom);
 
@@ -323,49 +417,62 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
                 }
                 g.DrawRectangle(Pens.DarkGray, rect);
 
-                // category label below
                 var labelRect = new Rectangle(x - 6, reservedTop + h + 4, barWidth + 12, 36);
                 var sf = new StringFormat { Alignment = StringAlignment.Center };
                 g.DrawString(kv.Key, font, Brushes.Black, labelRect, sf);
 
-                // value label above bar; ensure within visible area
                 var sval = val.ToString();
                 var size = g.MeasureString(sval, font);
                 float valY = rect.Top - size.Height - 4;
-                if (valY < 2) valY = rect.Top + 2; // if too tight, draw inside bar
+                if (valY < 2) valY = rect.Top + 2;
                 g.DrawString(sval, font, Brushes.Black, x + barWidth / 2 - size.Width / 2, valY);
 
                 x += barWidth + spacing;
             }
         }
 
+       
         private Patient GetSelectedPatient()
         {
+            // Если ничего не выбрано — возвращаем новый пустой объект
+            if (dataGridViewPatients.SelectedRows.Count == 0) return new Patient();
+
+            // DataGridView обычно хранит привязанный объект в DataBoundItem — пробуем привести его к Patient
+            var bound = dataGridViewPatients.SelectedRows[0].DataBoundItem as Patient;
+            if (bound != null)
+            {
+                // Ищем объект в нашем списке по Id и возвращаем его.
+                
+                var found = _dataService.Patients.FirstOrDefault(x => x.Id == bound.Id);
+                return found ?? bound;
+            }
+
+            // Если DataBoundItem не является Patient (например, таблица не была связана напрямую),
+            // пробуем прочитать значение из колонки colId (если она есть) и найти пациента по Id.
             try
             {
-                if (dataGridViewPatients.SelectedRows.Count > 0)
+                var row = dataGridViewPatients.SelectedRows[0];
+                var idCell = row.Cells.Cast<DataGridViewCell>().FirstOrDefault(c => string.Equals(c.OwningColumn.Name, "colId", StringComparison.OrdinalIgnoreCase));
+                if (idCell != null && idCell.Value != null && int.TryParse(idCell.Value.ToString(), out var id2))
                 {
-                    var bound = dataGridViewPatients.SelectedRows[0].DataBoundItem;
-                    if (bound != null)
-                    {
-                        var idProp = bound.GetType().GetProperty("Id");
-                        if (idProp != null)
-                        {
-                            var idVal = idProp.GetValue(bound);
-                            if (idVal is int iid) return _dataService.Patients.First(x => x.Id == iid);
-                            if (idVal != null && int.TryParse(idVal.ToString(), out var parsed)) return _dataService.Patients.First(x => x.Id == parsed);
-                        }
-                    }
-
-                    var idCell = dataGridViewPatients.SelectedRows[0].Cells.Cast<DataGridViewCell>().FirstOrDefault(c => string.Equals(c.OwningColumn.Name, "colId", StringComparison.OrdinalIgnoreCase));
-                    if (idCell != null && idCell.Value != null && int.TryParse(idCell.Value.ToString(), out var id2)) return _dataService.Patients.First(x => x.Id == id2);
+                    var found2 = _dataService.Patients.FirstOrDefault(x => x.Id == id2);
+                    if (found2 != null) return found2;
                 }
             }
-            catch { }
+            catch
+            {
+              
+            }
 
+            // В крайнем случае возвращаем пустой объект
             return new Patient();
         }
 
+        /*
+         * ShowEditDialog
+         * Открывает диалог редактирования. Если передан null — создаём новый Patient.
+         * После успешного редактирования добавляем или обновляем запись в сервисе и обновляем интерфейс.
+         */
         private void ShowEditDialog(Patient? p)
         {
             var isNew = p == null;
@@ -384,15 +491,24 @@ namespace Tyuiu.VikolAS.Sprint7.Project.V6
                 OnDispensary = p.OnDispensary,
                 Note = p.Note
             };
+
             using var edit = new FormEditPatient(copy);
             if (edit.ShowDialog() == DialogResult.OK)
             {
-                if (isNew) _dataService.AddPatient(edit.Patient); else _dataService.UpdatePatient(edit.Patient);
+                if (isNew)
+                {
+                    _dataService.AddPatient(edit.Patient);
+                }
+                else
+                {
+                    _dataService.UpdatePatient(edit.Patient);
+                }
+
                 RefreshControlsAfterLoad();
             }
         }
 
-        // helpers
+        // Маленькие безопасные обёртки для вызовов сервиса — возвращают значения по умолчанию в случае ошибки.
         private (int Count, double AverageAge, int MinAge, int MaxAge) _data_service_safe_stats()
         {
             try { return _dataService.GetStatistics(); } catch { return (0, 0, 0, 0); }
